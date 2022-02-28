@@ -1,5 +1,6 @@
 [package]
 name = "near-api-rs"
+authors = ["Russell Wong"]
 version = "0.1.0"
 edition = "2021"
 
