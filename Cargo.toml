@@ -1,0 +1,9 @@
+[package]
+name = "near-api-rs"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies]
+borsh = "0.9"
+ed25519-dalek = "1.0.1"
