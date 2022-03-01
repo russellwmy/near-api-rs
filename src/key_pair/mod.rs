@@ -2,6 +2,8 @@ mod key_pair_ed25519;
 mod key_type;
 mod public_key;
 
+use core::str;
+pub use key_pair_ed25519::*;
 use key_type::*;
 use public_key::PublicKey;
 
