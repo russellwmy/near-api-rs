@@ -1,20 +1,37 @@
 mod browser;
 mod in_mem;
 
-use crate::key_pair::KeyPair;
-use core::fmt::Display;
+pub use browser::*;
 pub use in_mem::*;
+use near_account_id::AccountId;
+use near_crypto::SecretKey;
 
-pub trait KeyStore {
-    fn set_key<T: KeyPair + Display + 'static>(
-        &mut self,
-        network_id: &str,
-        account_id: &str,
-        key_pair: T,
-    );
-    fn get_key(&self, network_id: &str, account_id: &str) -> Box<dyn KeyPair>;
-    fn remove_key(&mut self, network_id: &str, account_id: &str);
+pub type KeyPair = SecretKey;
+
+pub trait KeyStore: CloneKeyStore {
+    fn set_key(&mut self, account_id: AccountId, network_id: &str, key_pair: KeyPair);
+    fn get_key(&self, account_id: AccountId, network_id: &str) -> KeyPair;
+    fn remove_key(&mut self, account_id: AccountId, network_id: &str);
     fn clear(&mut self);
     fn get_networks(&self) -> Vec<String>;
     fn get_accounts(&self, network_id: &str) -> Vec<String>;
+}
+
+pub trait CloneKeyStore {
+    fn clone_key_store<'a>(&self) -> Box<dyn KeyStore>;
+}
+
+impl<T> CloneKeyStore for T
+where
+    T: KeyStore + Clone + 'static,
+{
+    fn clone_key_store(&self) -> Box<dyn KeyStore> {
+        Box::new(self.clone())
+    }
+}
+
+impl Clone for Box<dyn KeyStore> {
+    fn clone(&self) -> Self {
+        self.clone_key_store()
+    }
 }

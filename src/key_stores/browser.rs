@@ -1,11 +1,12 @@
-use super::KeyStore;
-use crate::key_pair::{KeyPair, KeyPairED25519};
+use near_account_id::AccountId;
+
+use super::{KeyPair, KeyStore};
 use core::fmt;
 use core::str::FromStr;
 
-const LOCAL_STORAGE_KEY_PREFIX: &str = "near-api-rs:keystore";
+const LOCAL_STORAGE_KEY_PREFIX: &str = "near-api-rs_keystore";
 
-#[derive(Debug)]
+#[derive(Clone)]
 pub struct BrowserKeyStore {
     prefix: String,
     storage: web_sys::Storage,
@@ -40,14 +41,15 @@ impl BrowserKeyStore {
     }
 }
 
+impl fmt::Display for BrowserKeyStore {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "BrowserKeyStore")
+    }
+}
+
 impl KeyStore for BrowserKeyStore {
-    fn set_key<T: KeyPair + fmt::Display + 'static>(
-        &mut self,
-        network_id: &str,
-        account_id: &str,
-        key_pair: T,
-    ) {
-        let key = Self::_get_storage_key(&self.prefix, account_id, network_id);
+    fn set_key(&mut self, account_id: AccountId, network_id: &str, key_pair: KeyPair) {
+        let key = Self::_get_storage_key(&self.prefix, account_id.as_str(), network_id);
         let value = key_pair.to_string();
 
         self.storage
@@ -55,15 +57,15 @@ impl KeyStore for BrowserKeyStore {
             .expect("Fail to delete key from storage");
     }
 
-    fn get_key(&self, network_id: &str, account_id: &str) -> Box<dyn KeyPair> {
-        let key = Self::_get_storage_key(&self.prefix, account_id, network_id);
+    fn get_key(&self, account_id: AccountId, network_id: &str) -> KeyPair {
+        let key = Self::_get_storage_key(&self.prefix, account_id.as_str(), network_id);
         let value = self.storage.get_item(&key).expect("Invalid key").unwrap();
-        let key_pair = KeyPairED25519::from_str(value.as_str()).expect("Invalid key data");
+        let key_pair = KeyPair::from_str(value.as_str()).expect("Invalid key data");
 
-        Box::new(key_pair)
+        key_pair
     }
-    fn remove_key(&mut self, network_id: &str, account_id: &str) {
-        let key = Self::_get_storage_key(&self.prefix, account_id, network_id);
+    fn remove_key(&mut self, account_id: AccountId, network_id: &str) {
+        let key = Self::_get_storage_key(&self.prefix, account_id.as_str(), network_id);
 
         self.storage
             .delete(&key)

@@ -1,0 +1,93 @@
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ChunkReference {
+    BlockShardId {
+        block_id: near_primitives::types::BlockId,
+        shard_id: near_primitives::types::ShardId,
+    },
+    ChunkHash {
+        chunk_id: near_primitives::hash::CryptoHash,
+    },
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct RpcChunkRequest {
+    #[serde(flatten)]
+    pub chunk_reference: ChunkReference,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct RpcChunkResponse {
+    #[serde(flatten)]
+    pub chunk_view: near_primitives::views::ChunkView,
+}
+
+#[derive(thiserror::Error, Debug, Serialize, Deserialize)]
+#[serde(tag = "name", content = "info", rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum RpcChunkError {
+    #[error("The node reached its limits. Try again later. More details: {error_message}")]
+    InternalError { error_message: String },
+    #[error("Block either has never been observed on the node or has been garbage collected: {error_message}")]
+    UnknownBlock {
+        #[serde(skip_serializing)]
+        error_message: String,
+    },
+    #[error("Shard id {shard_id} does not exist")]
+    InvalidShardId { shard_id: u64 },
+    #[error("Chunk with hash {chunk_hash:?} has never been observed on this node")]
+    UnknownChunk {
+        chunk_hash: near_primitives::sharding::ChunkHash,
+    },
+}
+
+impl RpcChunkRequest {
+    pub fn parse(value: Option<Value>) -> Result<Self, crate::errors::RpcParseError> {
+        // Try to parse legacy positioned args and if it fails parse newer named args
+        let chunk_reference = if let Ok((chunk_id,)) =
+            crate::utils::parse_params::<(near_primitives::hash::CryptoHash,)>(value.clone())
+        {
+            ChunkReference::ChunkHash { chunk_id }
+        } else if let Ok(((block_id, shard_id),)) = crate::utils::parse_params::<((
+            near_primitives::types::BlockId,
+            near_primitives::types::ShardId,
+        ),)>(value.clone())
+        {
+            ChunkReference::BlockShardId { block_id, shard_id }
+        } else {
+            crate::utils::parse_params::<ChunkReference>(value)?
+        };
+        Ok(Self { chunk_reference })
+    }
+}
+
+impl From<RpcChunkError> for crate::errors::RpcError {
+    fn from(error: RpcChunkError) -> Self {
+        let error_data = match &error {
+            RpcChunkError::InternalError { .. } => Some(Value::String(error.to_string())),
+            RpcChunkError::UnknownBlock { error_message } => Some(Value::String(format!(
+                "DB Not Found Error: {} \n Cause: Unknown",
+                error_message
+            ))),
+            RpcChunkError::InvalidShardId { .. } => Some(Value::String(error.to_string())),
+            RpcChunkError::UnknownChunk { chunk_hash } => Some(Value::String(format!(
+                "Chunk Missing (unavailable on the node): ChunkHash(`{}`) \n Cause: Unknown",
+                chunk_hash.0.to_string()
+            ))),
+        };
+
+        let error_data_value = match serde_json::to_value(error) {
+            Ok(value) => value,
+            Err(err) => {
+                return Self::new_internal_error(
+                    None,
+                    format!("Failed to serialize RpcStateChangesError: {:?}", err),
+                )
+            }
+        };
+
+        Self::new_internal_or_handler_error(error_data, error_data_value)
+    }
+}

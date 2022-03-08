@@ -1,9 +1,10 @@
-use super::KeyStore;
-use crate::key_pair::{KeyPair, KeyPairED25519};
-use core::fmt::Display;
+use super::{KeyPair, KeyStore};
+use core::fmt;
 use core::str::FromStr;
 use hashbrown::HashMap;
+use near_account_id::AccountId;
 
+#[derive(Clone)]
 pub struct InMemKeyStore {
     storage: HashMap<String, String>,
 }
@@ -27,27 +28,28 @@ impl InMemKeyStore {
     }
 }
 
+impl fmt::Display for InMemKeyStore {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "InMemKeyStore")
+    }
+}
+
 impl KeyStore for InMemKeyStore {
-    fn set_key<T: KeyPair + Display + 'static>(
-        &mut self,
-        account_id: &str,
-        network_id: &str,
-        key_pair: T,
-    ) {
-        let key = Self::_get_storage_key(account_id, network_id);
+    fn set_key(&mut self, account_id: AccountId, network_id: &str, key_pair: KeyPair) {
+        let key = Self::_get_storage_key(account_id.as_str(), network_id);
         let value = key_pair.to_string();
         self.storage.insert(key, value);
     }
 
-    fn get_key(&self, account_id: &str, network_id: &str) -> Box<dyn KeyPair> {
-        let key = Self::_get_storage_key(account_id, network_id);
+    fn get_key(&self, account_id: AccountId, network_id: &str) -> KeyPair {
+        let key = Self::_get_storage_key(account_id.as_str(), network_id);
         let value = self.storage.get(&key).expect("Invalid key");
-        let key_pair = KeyPairED25519::from_str(value.as_str()).expect("Invalid key data");
+        let key_pair = KeyPair::from_str(value.as_str()).expect("Invalid key data");
 
-        Box::new(key_pair)
+        key_pair
     }
-    fn remove_key(&mut self, account_id: &str, network_id: &str) {
-        let key = Self::_get_storage_key(account_id, network_id);
+    fn remove_key(&mut self, account_id: AccountId, network_id: &str) {
+        let key = Self::_get_storage_key(account_id.as_str(), network_id);
 
         self.storage.remove(&key);
     }
