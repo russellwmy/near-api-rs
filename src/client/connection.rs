@@ -1,9 +1,9 @@
 use near_crypto::Signer;
+use serde::{Deserialize, Serialize};
 
 use crate::provider::{ConnectionInfo, JsonRpcProvider, Provider};
 
 use super::ClientConfig;
-
 pub struct Connection {
     pub network_id: String,
     pub provider: Provider,

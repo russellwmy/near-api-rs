@@ -144,10 +144,13 @@ impl JsonRpcProvider {
     // async fn query<T: QueryResponseKind>(self, path: String, data: String) -> T{todo!();}
 
     // // TODO: BlockQuery type?
-    pub async fn block(&self, block_query: BlockId) -> Result<BlockResult, RpcError> {
+    pub async fn block(&self, block_query: BlockReference) -> Result<BlockResult, RpcError> {
         let byes = match block_query {
-            BlockId::Height(v) => v.to_string(),
-            BlockId::Hash(v) => v.to_string(),
+            BlockReference::BlockId(block_id) => match block_id {
+                BlockId::Height(v) => v.to_string(),
+                BlockId::Hash(v) => v.to_string(),
+            },
+            _ => panic!("Missing block id"),
         };
 
         let params = serde_json::to_value([&byes]).unwrap();

@@ -20,8 +20,11 @@ async-trait = "0.1"
 
 near-account-id = { git = "https://github.com/russellwmy/nearcore.git" }
 near-jsonrpc-primitives-wasm = { path = "./jsonrpc-primitives" }
-near-crypto = { git = "https://github.com/russellwmy/nearcore.git", default-features = false }
-near-primitives = { git = "https://github.com/russellwmy/nearcore.git", default-features = false }
+near-crypto = { path = "../nearcore/core/crypto" }
+near-primitives = { path = "../nearcore/core/primitives" }
+
+# near-crypto = { git = "https://github.com/russellwmy/nearcore.git", default-features = false }
+# near-primitives = { git = "https://github.com/russellwmy/nearcore.git", default-features = false }
 
 [dependencies.web-sys]
 version = "0.3"
