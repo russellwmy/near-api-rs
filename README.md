@@ -1,1 +1,1 @@
-# Moved to https://github.com/russellwmy/web3-rs/tree/near
+# Moved to https://github.com/russellwmy/web3-rs
