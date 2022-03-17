@@ -1,2 +1,1 @@
-# near-api-rs (WIP)
-A Rust library for development of DApps on the NEAR platform.
+# Moved to https://github.com/russellwmy/web3-rs/tree/near
